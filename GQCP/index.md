@@ -12,4 +12,4 @@ But why does our quantum chemistry community need yet another electronic structu
 
 ## Documentation
 
-Please visit the [documentation page](GQCP/documentation) for an overview of GQCP's capabilities and code examples.
+Please visit the [documentation page](documentation) for an overview of GQCP's capabilities and code examples.
