@@ -1,0 +1,2 @@
+`FockPermutator` is an interface class for ONV bases (Fock spaces) that can manipulate ONVs and their representations. It is implemented using the CRTP design pattern, because it eliminates the need for (slow) virtual function calls:
+ If not, `setNextONV(ONV &onv)`, which is implemented in the base and calls the virtual function `ulongNextPermutation(size_t representation)`, which would be costly.
