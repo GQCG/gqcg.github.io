@@ -1,6 +1,6 @@
 # The Ghent Quantum Chemistry Package
 
-Welcome to the home page of the Ghent Quantum Chemistry Package, GQCP for short. 
+Welcome to the home page of the Ghent Quantum Chemistry Package, GQCP for short.
 
 
 ## Why?
@@ -12,4 +12,6 @@ But why does our quantum chemistry community need yet another electronic structu
 
 ## Documentation
 
-Please visit the [documentation page](documentation.md) for an overview of GQCP's capabilities and code examples.
+If you are mainly interested in how to use the code and its Python bindings, we would like you to go through the [Python documentation page](python_documentation.md).
+
+If you would like to know how the C++ library works under the hood, we kindly point you to the [C++ documentation page](cpp_documentation.md).
