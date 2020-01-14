@@ -69,3 +69,8 @@ std::cout << op.parameters(1)(0,1) << std::endl;  // access the element (0,1) of
 ```
 
 We should note that this type of access both works in a read-only and a write way.
+
+
+## Usage in an external project
+
+In order to use the C++ We have created a small [example](https://github.com/GQCG/GQCP-link) which showcases how to use `GQCP` in an external C++ project.
