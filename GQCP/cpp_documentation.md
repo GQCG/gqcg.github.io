@@ -13,6 +13,8 @@ In this section, we will go over the main aspects of the C++ library.
 It is meant as an introduction to the source code for interested users, but mainly for C++ developers that are interested in how GQCP works under the hood.
 By reading this section, we assume that you are familiar with C++.
 
+
+### Second-quantized operators
 Since the GQCP source code uses concepts related to second quantization, we should start by examining the core objects `SQOneElectronOperator` and `SQTwoElectronOperator`: the prefix 'SQ' means 'second-quantized', we have used it in order to somewhat abbreviate the class names. 
 `SQOperator`, which is not a real class but is used to refer to either `SQOneElectronOperator` or `SQTwoElectronOperator`, encapsulates the integrals/parameters that are present in the corresponding second-quantized expression, so there must be a way to create an `SQOperator` from its integrals/parameters.
 Let us go through a small snippet to create an `SQOneElectronOperator`. 
@@ -69,6 +71,59 @@ std::cout << op.parameters(1)(0,1) << std::endl;  // access the element (0,1) of
 ```
 
 We should note that this type of access both works in a read-only and a write way.
+
+
+<!-- ### Quantum chemical methods and models
+We define a quantum chemical model as a set of related electronic structure models with the same classes of parameters. Tightly coupled to this definition, we define a quantum chemical method as the combination of a quantum chemical method and an objective. This objective supplies a way of checking optimality for the instance of a quantum chemical model.
+
+In the `C++` code, we have implemented `QCMethod` as a class template, from which we show here the following excerpt:
+
+```cpp
+template <typename _QCModel, typename _DerivedQCMethod>
+class QCMethod: public CRTP<_DerivedQCMethod> {
+public:
+    template <QCObjective objective>
+    QCStructure<QCModel> optimize() { return this->derived().optimize(); }
+};
+```
+
+This means that any method that derives from `QCMethod` (in a CRTP-way, i.e. allowing static polymorphism) and implements a suitable `optimize` function, conforms to this protocol. (A `QCStructure` encapsulates ground- and excited state energies and model parameters.) -->
+
+
+### Flexible solver algorithms
+
+In GQCP, we have chosen for a flexible solver design instead of only providing our users with our implementations of certain optimization algorithms, like RHF SCF or Newton-step based minimizers.
+
+The first class we will discuss is the `IterativeSolver`. At its core, it provides the implementation of `.iterate()`, which iterates until the maximum number of allowed iterations is reached, or the convergence criterion is reached. In every iteration step, it will check if the convergence criterion is fulfilled, and if it is not, it will continue to execute all the steps in its `IterationCycle`.
+
+Convergence criteria can be implemented by deriving from `ConvergenceCriterion` and implementing its `isFulfilled()` method. An example for RHF SCF would be to check the norm on two subsequent density matrices. One important realization is that the iteration steps and the convergence criteria must be able to access the information that the algorithm in its entirety produces. For RHF SCF, this would be the coefficient matrices, the density matrices, the Fock matrices, etc. That is why every `IterativeSolver`, its `IterationCycle`, its `IterationStep`s and `ConvergenceCriterion` must all be defined with respect to an `Environment`, which is the template parameter that should be attached to each of these classes.
+
+An example can make many things clear. Suppose we would like to do an RHF SCF calculation. The code that creates our suggested type of plain RHF SCF solver is the following:
+
+```cpp
+IterativeAlgorithm<Environment> Plain(const double threshold = 1.0e-08, const size_t maximum_number_of_iterations = 128) {
+
+    // Create the iteration cycle that effectively 'defines' a plain RHF SCF solver
+    IterationCycle<Environment> plain_rhf_scf_cycle {};
+    plain_rhf_scf_cycle.add(RHFDensityMatrixCalculation<Scalar>())
+                       .add(RHFFockMatrixCalculation<Scalar>())
+                       .add(RHFFockMatrixDiagonalization<Scalar>())
+                       .add(RHFElectronicEnergyCalculation<Scalar>());
+
+    return IterativeAlgorithm<Environment>(plain_rhf_scf_cycle, RHFDensityMatrixConvergenceCriterion<Scalar>(threshold), maximum_number_of_iterations);
+}
+```
+
+The reader might confirm that the code is clear: in every iteration, the algorithm will check the convergence on the density matrices (cfr `RHFDensityMatrixConvergenceCriterion<Scalar>(threshold)`). If the algorithm has not converged, an iteration cycle continues in which the following happens:
+1. The RHF density matrix is calculated (from the most recent coefficient matrix)
+1. The RHF Fock matrix is calculated (from the most recent density matrix);
+1. The RHF Fock matrix is diagonalized (to yield a new coefficient matrix);
+1. RHF energy is calculated (from the most recent coefficient matrix).
+
+From this example, we can see that every `IterationCycle` consists of `IterationStep`s. Each of these `IterationStep`s are instances of classes with an implemented `.execute(Environment)` method that usually 1) read from the environment, 2) calculate some value, 3) write to the environment, but the user is always free to implement his or her desires.
+
+As a conclusion, we have achieved, in essence, a run-time specification of iterative algorithms and we therefore provide the highest amount of flexibility for the (knowing) user to experiment with different solver algorithms. We will continue to provide default implementations, but if a user requires a new kind of algorithm, i.e. one that requires a new kind of environment, he or she only has to implement a new type of `Environment` and the necessary `IterationStep`s.
+
 
 
 ## Usage in an external project
