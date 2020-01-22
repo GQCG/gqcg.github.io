@@ -73,23 +73,6 @@ std::cout << op.parameters(1)(0,1) << std::endl;  // access the element (0,1) of
 We should note that this type of access both works in a read-only and a write way.
 
 
-<!-- ### Quantum chemical methods and models
-We define a quantum chemical model as a set of related electronic structure models with the same classes of parameters. Tightly coupled to this definition, we define a quantum chemical method as the combination of a quantum chemical method and an objective. This objective supplies a way of checking optimality for the instance of a quantum chemical model.
-
-In the `C++` code, we have implemented `QCMethod` as a class template, from which we show here the following excerpt:
-
-```cpp
-template <typename _QCModel, typename _DerivedQCMethod>
-class QCMethod: public CRTP<_DerivedQCMethod> {
-public:
-    template <QCObjective objective>
-    QCStructure<QCModel> optimize() { return this->derived().optimize(); }
-};
-```
-
-This means that any method that derives from `QCMethod` (in a CRTP-way, i.e. allowing static polymorphism) and implements a suitable `optimize` function, conforms to this protocol. (A `QCStructure` encapsulates ground- and excited state energies and model parameters.) -->
-
-
 ### Flexible solver algorithms
 
 In GQCP, we have chosen for a flexible solver design instead of only providing our users with our implementations of certain optimization algorithms, like RHF SCF or Newton-step based minimizers.
@@ -128,6 +111,45 @@ From this example, we can see that every `IterationCycle` consists of `Iteration
 
 As a conclusion, we have achieved, in essence, a run-time specification of iterative algorithms and we therefore provide the highest amount of flexibility for the (knowing) user to experiment with different solver algorithms. We will continue to provide default implementations, but if a user requires a new kind of algorithm, i.e. one that requires a new kind of environment, he or she only has to implement a new type of `Environment` and the necessary `IterationStep`s.
 
+
+
+### Quantum chemical methods and models
+We define a quantum chemical model as a set of related electronic structure models with the same classes of parameters. For example, the RHF wave function model can be mathematically written as the orbital rotation operator acting on the closed-shell reference determinant. Its parameters are all the (occupied-virtual) orbital rotation generators. When we optimize a quantum chemical method, such that a certain objective is fulfilled, we have found its 'optimal parameters'.
+
+In the `C++` code, a `QCModel` is a hypothetical class (i.e. it does not really exist) that allows us to express all the variations for the electronic structure model. Coupled to `QCModel`, we inseparably have the class `QCObjective`. Let's take a look at the essential source code.
+
+```cpp
+template <typename _DerivedQCObjective>
+class QCObjective :
+    public CRTP<_DerivedQCObjective> {
+public:
+    using DerivedQCObjective = _DerivedQCObjective;
+
+public:
+    template <typename QCModel>
+    bool isSatisfiedWith(const QCModel& model_parameters) const {
+        this->derived().isSatisfiedWith(model_parameters);
+    }
+};
+```
+
+We see that we have made `QCObjective` a compile-time base class, whose derived classes should implement `isSatisfiedWith(const QCModel&)`. The optimized parameters are then an instance of `QCModel`, such that a corresponding objective `isSatisfiedWith` it.
+
+Since we had already introduced the `namespace QCMethod`, we chose another name for the actual base class `QCMethodProtocol`, of which we'll inspect the source code.
+
+```cpp
+template <typename _QCModel, typename _DerivedQCMethod>
+class QCMethodProtocol:
+    public CRTP<_DerivedQCMethod> {
+
+public:
+
+    template <typename QCObjective, typename Solver>
+    QCStructure<QCModel> optimize(const QCObjective& objective, Solver& solver);
+};
+```
+
+This class is thus naturally coupled to a `QCModel`. Furthermore, classes that derive from `QCMethodProtocol`, or, better: conform to it, must implement an `optimize()` method, which takes an `Objective` to allow to check if the `solver`'s solution actually produces a solution that is consistent with the objective. It's the `QCMethod`'s responsibility to construct a `QCModel` from the `solver`'s solution, and put them in a `QCStructure`, which is a collection of ground- and possibly excited state model parameters.
 
 
 ## Usage in an external project
