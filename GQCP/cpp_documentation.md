@@ -104,17 +104,21 @@ An example can make many things clear. Suppose we would like to do an RHF SCF ca
 IterativeAlgorithm<Environment> Plain(const double threshold = 1.0e-08, const size_t maximum_number_of_iterations = 128) {
 
     // Create the iteration cycle that effectively 'defines' a plain RHF SCF solver
-    IterationCycle<Environment> plain_rhf_scf_cycle {};
+    IterationCycle<RHFSCFEnvironment<Scalar>> plain_rhf_scf_cycle {};
     plain_rhf_scf_cycle.add(RHFDensityMatrixCalculation<Scalar>())
-                       .add(RHFFockMatrixCalculation<Scalar>())
-                       .add(RHFFockMatrixDiagonalization<Scalar>())
-                       .add(RHFElectronicEnergyCalculation<Scalar>());
+                        .add(RHFFockMatrixCalculation<Scalar>())
+                        .add(RHFFockMatrixDiagonalization<Scalar>())
+                        .add(RHFElectronicEnergyCalculation<Scalar>());
 
-    return IterativeAlgorithm<Environment>(plain_rhf_scf_cycle, RHFDensityMatrixConvergenceCriterion<Scalar>(threshold), maximum_number_of_iterations);
+    // Create a convergence criterion on the norm of subsequent density matrices
+    const auto density_matrix_extractor = [] (const RHFSCFEnvironment<Scalar>& environment) { return environment.density_matrices; };
+    const ConsecutiveIteratesNormConvergence<OneRDM<Scalar>, RHFSCFEnvironment<Scalar>> convergence_criterion (threshold, density_matrix_extractor);
+
+    return IterativeAlgorithm<RHFSCFEnvironment<Scalar>>(plain_rhf_scf_cycle, convergence_criterion, maximum_number_of_iterations);
 }
 ```
 
-The reader might confirm that the code is clear: in every iteration, the algorithm will check the convergence on the density matrices (cfr `RHFDensityMatrixConvergenceCriterion<Scalar>(threshold)`). If the algorithm has not converged, an iteration cycle continues in which the following happens:
+The reader might confirm that the code is clear: in every iteration, the algorithm will check the convergence on the density matrices (cfr `ConsecutiveIteratesNormConvergence` with a suitable iterate extractor). If the algorithm has not converged, an iteration cycle continues in which the following happens:
 1. The RHF density matrix is calculated (from the most recent coefficient matrix)
 1. The RHF Fock matrix is calculated (from the most recent density matrix);
 1. The RHF Fock matrix is diagonalized (to yield a new coefficient matrix);
