@@ -144,12 +144,14 @@ class QCMethodProtocol:
 
 public:
 
-    template <typename QCObjective, typename Solver>
-    QCStructure<QCModel> optimize(const QCObjective& objective, Solver& solver);
+    template <typename QCObjective, typename Solver, typename Environment>
+    QCStructure<QCModel> optimize(const QCObjective& objective, Solver& solver, Environment& environment) {
+        return this->derived().optimize(objective, solver, environment);
+    }
 };
 ```
 
-This class is thus naturally coupled to a `QCModel`. Furthermore, classes that derive from `QCMethodProtocol`, or, better: conform to it, must implement an `optimize()` method, which takes an `Objective` to allow to check if the `solver`'s solution actually produces a solution that is consistent with the objective. It's the `QCMethod`'s responsibility to construct a `QCModel` from the `solver`'s solution, and put them in a `QCStructure`, which is a collection of ground- and possibly excited state model parameters.
+This class is thus naturally coupled to a `QCModel`. Furthermore, classes that derive from `QCMethodProtocol`, or, better: conform to it, must implement an `optimize()` method, which takes an `Objective` to allow to check if the `solver`'s solution actually produces a solution that is consistent with the objective. It's the `QCMethod`'s responsibility to construct a `QCModel` from the `solver`'s solution, which is actually stored in the corresponding `environment` and put them in a `QCStructure`, which is a collection of ground- and possibly excited state model parameters.
 
 
 ## Usage in an external project
