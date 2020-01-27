@@ -77,9 +77,9 @@ We should note that this type of access both works in a read-only and a write wa
 
 In GQCP, we have chosen for a flexible solver design instead of only providing our users with our implementations of certain optimization algorithms, like RHF SCF or Newton-step based minimizers.
 
-The first class we will discuss is the `IterativeSolver`. At its core, it provides the implementation of `.iterate()`, which iterates until the maximum number of allowed iterations is reached, or the convergence criterion is reached. In every iteration step, it will check if the convergence criterion is fulfilled, and if it is not, it will continue to execute all the steps in its `IterationCycle`.
+The first class we will discuss is the `IterativeSolver`. At its core, it provides the implementation of `.iterate()`, which iterates until the maximum number of allowed iterations is reached, or the convergence criterion is reached. In every iteration step, it will check if the convergence criterion is fulfilled, and if it is not, it will continue to execute all the steps in its `StepCollection`.
 
-Convergence criteria can be implemented by deriving from `ConvergenceCriterion` and implementing its `isFulfilled()` method. An example for RHF SCF would be to check the norm on two subsequent density matrices. One important realization is that the iteration steps and the convergence criteria must be able to access the information that the algorithm in its entirety produces. For RHF SCF, this would be the coefficient matrices, the density matrices, the Fock matrices, etc. That is why every `IterativeSolver`, its `IterationCycle`, its `IterationStep`s and `ConvergenceCriterion` must all be defined with respect to an `Environment`, which is the template parameter that should be attached to each of these classes.
+Convergence criteria can be implemented by deriving from `ConvergenceCriterion` and implementing its `isFulfilled()` method. An example for RHF SCF would be to check the norm on two subsequent density matrices. One important realization is that the iteration steps and the convergence criteria must be able to access the information that the algorithm in its entirety produces. For RHF SCF, this would be the coefficient matrices, the density matrices, the Fock matrices, etc. That is why every `IterativeSolver`, its `StepCollection`, its `Step`s and `ConvergenceCriterion` must all be defined with respect to an `Environment`, which is the template parameter that should be attached to each of these classes.
 
 An example can make many things clear. Suppose we would like to do an RHF SCF calculation. The code that creates our suggested type of plain RHF SCF solver is the following:
 
@@ -87,7 +87,7 @@ An example can make many things clear. Suppose we would like to do an RHF SCF ca
 IterativeAlgorithm<Environment> Plain(const double threshold = 1.0e-08, const size_t maximum_number_of_iterations = 128) {
 
     // Create the iteration cycle that effectively 'defines' a plain RHF SCF solver
-    IterationCycle<RHFSCFEnvironment<Scalar>> plain_rhf_scf_cycle {};
+    StepCollection<RHFSCFEnvironment<Scalar>> plain_rhf_scf_cycle {};
     plain_rhf_scf_cycle.add(RHFDensityMatrixCalculation<Scalar>())
                         .add(RHFFockMatrixCalculation<Scalar>())
                         .add(RHFFockMatrixDiagonalization<Scalar>())
@@ -107,9 +107,9 @@ The reader might confirm that the code is clear: in every iteration, the algorit
 1. The RHF Fock matrix is diagonalized (to yield a new coefficient matrix);
 1. RHF energy is calculated (from the most recent coefficient matrix).
 
-From this example, we can see that every `IterationCycle` consists of `IterationStep`s. Each of these `IterationStep`s are instances of classes with an implemented `.execute(Environment)` method that usually 1) read from the environment, 2) calculate some value, 3) write to the environment, but the user is always free to implement his or her desires.
+From this example, we can see that every `StepCollection` consists of `Step`s. Each of these `Step`s are instances of classes with an implemented `.execute(Environment)` method that usually 1) read from the environment, 2) calculate some value, 3) write to the environment, but the user is always free to implement his or her desires.
 
-As a conclusion, we have achieved, in essence, a run-time specification of iterative algorithms and we therefore provide the highest amount of flexibility for the (knowing) user to experiment with different solver algorithms. We will continue to provide default implementations, but if a user requires a new kind of algorithm, i.e. one that requires a new kind of environment, he or she only has to implement a new type of `Environment` and the necessary `IterationStep`s.
+As a conclusion, we have achieved, in essence, a run-time specification of iterative algorithms and we therefore provide the highest amount of flexibility for the (knowing) user to experiment with different solver algorithms. We will continue to provide default implementations, but if a user requires a new kind of algorithm, i.e. one that requires a new kind of environment, he or she only has to implement a new type of `Environment` and the necessary `Step`s.
 
 
 
