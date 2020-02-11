@@ -29,7 +29,7 @@ GQCP::QCMatrix<double> M (2);  // the matrix representation
 M << 1.0, 2.0,
      3.0, 4.0;
 
-const GQCP::ScalarSQOneElectronOperator<double> op ({M});  // the operator itself
+const GQCP::ScalarSQOneElectronOperator<double> op {M};  // the operator itself
 ```
 
 
@@ -77,7 +77,7 @@ We should note that this type of access both works in a read-only and a write wa
 
 In GQCP, we have chosen for a flexible solver design instead of only providing our users with our implementations of certain optimization algorithms, like RHF SCF or Newton-step based minimizers.
 
-The first class we will discuss is the `IterativeSolver`. At its core, it provides the implementation of `.iterate()`, which iterates until the maximum number of allowed iterations is reached, or the convergence criterion is reached. In every iteration step, it will check if the convergence criterion is fulfilled, and if it is not, it will continue to execute all the steps in its `StepCollection`.
+The first class we will discuss is the `IterativeSolver`. At its core, it provides the implementation of `.perform()`, which iterates until the maximum number of allowed iterations is reached, or the convergence criterion is reached. In every iteration step, it will check if the convergence criterion is fulfilled, and if it is not, it will continue to execute all the steps in its `StepCollection`.
 
 Convergence criteria can be implemented by deriving from `ConvergenceCriterion` and implementing its `isFulfilled()` method. An example for RHF SCF would be to check the norm on two subsequent density matrices. One important realization is that the iteration steps and the convergence criteria must be able to access the information that the algorithm in its entirety produces. For RHF SCF, this would be the coefficient matrices, the density matrices, the Fock matrices, etc. That is why every `IterativeSolver`, its `StepCollection`, its `Step`s and `ConvergenceCriterion` must all be defined with respect to an `Environment`, which is the template parameter that should be attached to each of these classes.
 
